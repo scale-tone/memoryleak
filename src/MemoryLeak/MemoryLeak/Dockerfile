@@ -6,14 +6,11 @@ EXPOSE 80
 EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
-WORKDIR "/src/MemoryLeak"
-
-RUN echo "$PWD"
-
-COPY ["MemoryLeak/MemoryLeak.csproj", "MemoryLeak/"]
-RUN dotnet restore "MemoryLeak/MemoryLeak.csproj"
+WORKDIR /src
+COPY ["MemoryLeak.csproj", "."]
+RUN dotnet restore "./MemoryLeak.csproj"
 COPY . .
-WORKDIR "/src/MemoryLeak"
+WORKDIR "/src/."
 RUN dotnet build "MemoryLeak.csproj" -c Release -o /app/build
 
 FROM build AS publish
