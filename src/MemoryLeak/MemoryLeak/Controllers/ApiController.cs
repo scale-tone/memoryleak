@@ -4,7 +4,10 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -110,5 +113,48 @@ namespace MemoryLeak.Controllers
             return pooledArray.Array;
         }
 
+        [HttpGet("json/{size}")]
+        public string GetJson(int size)
+        {
+            var array = Enumerable.Range(0, size)
+                .Select(i => new MyDto
+                {
+                    MyNumber = i,
+                    MyDate = DateTimeOffset.Now,
+                })
+                .ToArray();
+
+            var json = JsonSerializer.Serialize(array);
+
+            return json;
+        }
+
+        [HttpGet("jsonsourcegenerated/{size}")]
+        public string GetSourceGeneratedJson(int size)
+        {
+            var array = Enumerable.Range(0, size)
+                .Select(i => new MyDto
+                {
+                    MyNumber = i,
+                    MyDate = DateTimeOffset.Now,
+                })
+                .ToArray();
+
+            var json = JsonSerializer.Serialize(array, typeof(MyDto[]), MyJsonContext.Default);
+
+            return json;
+        }
+
+    }
+
+    class MyDto
+    {
+        public DateTimeOffset MyDate { get; set; }
+        public int MyNumber { get; set; }
+    }
+
+    [JsonSerializable(typeof(MyDto[]))]
+    internal partial class MyJsonContext : JsonSerializerContext
+    {
     }
 }
