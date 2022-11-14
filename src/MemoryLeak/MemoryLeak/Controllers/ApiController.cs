@@ -29,7 +29,7 @@ namespace MemoryLeak.Controllers
         {
             var bigString = new String('x', 10 * 1024);
             _staticStrings.Add(bigString);
-            return bigString;
+            return _staticStrings.Count.ToString(); //bigString;
         }
 
         [HttpGet("bigstring")]
