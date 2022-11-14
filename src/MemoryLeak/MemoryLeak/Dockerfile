@@ -7,6 +7,7 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
+RUN ls
 COPY ["MemoryLeak/MemoryLeak/MemoryLeak.csproj", "MemoryLeak/"]
 RUN dotnet restore "MemoryLeak/MemoryLeak/MemoryLeak.csproj"
 COPY . .
