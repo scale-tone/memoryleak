@@ -3,6 +3,7 @@ using Microsoft.Extensions.FileProviders;
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -117,11 +118,7 @@ namespace MemoryLeak.Controllers
         public string GetJson(int size)
         {
             var array = Enumerable.Range(0, size)
-                .Select(i => new MyDto
-                {
-                    MyNumber = i,
-                    MyDate = DateTimeOffset.Now,
-                })
+                .Select(i => new MyDto())
                 .ToArray();
 
             var json = JsonSerializer.Serialize(array);
@@ -133,11 +130,7 @@ namespace MemoryLeak.Controllers
         public string GetSourceGeneratedJson(int size)
         {
             var array = Enumerable.Range(0, size)
-                .Select(i => new MyDto
-                {
-                    MyNumber = i,
-                    MyDate = DateTimeOffset.Now,
-                })
+                .Select(i => new MyDto())
                 .ToArray();
 
             var json = JsonSerializer.Serialize(array, typeof(MyDto[]), MyJsonContext.Default);
@@ -145,12 +138,64 @@ namespace MemoryLeak.Controllers
             return json;
         }
 
+        [HttpGet("bigjson")]
+        public async Task<IEnumerable<MyDto>> GetBigJson()
+        {
+            using var fileStream = System.IO.File.OpenRead("./bigjson.json");
+
+            var data = await JsonSerializer.DeserializeAsync<MyDto[]>(fileStream);
+
+            return data;
+        }
+
+        [HttpGet("bigjsonsyncstream")]
+        public async Task<IEnumerable<MyDto>> GetBigJsonSyncStream()
+        {
+            // cannot use using(), because it will result in ObjectDisposedException
+            var fileStream = System.IO.File.OpenRead("./bigjson.json");
+
+            // Instead registering fileStream for disposal after request is fully processed
+            HttpContext.Response.RegisterForDispose(fileStream);
+
+            var jsonEnumerable = await JsonSerializer.DeserializeAsync<IEnumerable<MyDto>>(fileStream);
+
+            return jsonEnumerable;
+        }
+
+        [HttpGet("bigjsonstream")]
+        public IAsyncEnumerable<MyDto> GetBigJsonStream()
+        {
+            // cannot use using(), because it will result in ObjectDisposedException
+            var fileStream = System.IO.File.OpenRead("./bigjson.json");
+
+            // Instead registering fileStream for disposal after request is fully processed
+            HttpContext.Response.RegisterForDispose(fileStream);
+
+            var jsonAsyncEnumerable = JsonSerializer.DeserializeAsyncEnumerable<MyDto>(fileStream);
+
+            return jsonAsyncEnumerable;
+        }
+
     }
 
-    class MyDto
+    public class MyDto
     {
-        public DateTimeOffset MyDate { get; set; }
-        public int MyNumber { get; set; }
+        public DateTimeOffset MyDate1 { get; set; }
+        public DateTimeOffset MyDate2 { get; set; }
+        public DateTimeOffset MyDate3 { get; set; }
+        public int MyNumber1 { get; set; }
+        public int MyNumber2 { get; set; }
+        public int MyNumber3 { get; set; }
+        public string MyString1 { get; set; }
+        public string MyString2 { get; set; }
+        public string MyString3 { get; set; }
+
+        public MyDto()
+        {
+            this.MyDate1 = this.MyDate2 = this.MyDate3 = DateTimeOffset.Now;
+            this.MyNumber1 = this.MyNumber2 = this.MyNumber3 = (int)DateTimeOffset.Now.Ticks;
+            this.MyString1 = this.MyString2 = this.MyString3 = DateTimeOffset.Now.ToString();
+        }
     }
 
     [JsonSerializable(typeof(MyDto[]))]
